@@ -4,13 +4,15 @@ name: Build Solana Agent V2000 APK
 on:
   workflow_dispatch:
   push:
-    paths:
-      - '*.zip'
-      - '.github/workflows/build-apk.yml'
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,23 +24,24 @@ jobs:
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4.0.4
+        with:
+          cmdline-tools-version: 12266719
 
-      - name: Install SDK
+      - name: Install Android packages
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
-          yes | sdkmanager --licenses
 
       - name: Setup Gradle
         run: |
           wget https://services.gradle.org/distributions/gradle-8.9-bin.zip
-          unzip gradle-8.9-bin.zip
+          unzip -q gradle-8.9-bin.zip
           echo "$GITHUB_WORKSPACE/gradle-8.9/bin" >> $GITHUB_PATH
 
       - name: Extract project
         run: |
           mkdir source
-          unzip -q *.zip -d source
+          unzip -q solana_agent_v2000_android_source.zip -d source
           cd source/solana_agent_v2000_android
           gradle assembleDebug
 
@@ -47,3 +50,4 @@ jobs:
         with:
           name: Solana-Agent-V2000-APK
           path: source/solana_agent_v2000_android/app/build/outputs/apk/debug/app-debug.apk
+          
