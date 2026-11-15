@@ -1,53 +1,27 @@
 
-name: Build Solana Agent V2000 APK
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [main]
+android {
+    namespace 'com.solanaagent.v2000'
+    compileSdk 35
 
-permissions:
-  contents: read
+    defaultConfig {
+        applicationId 'com.solanaagent.v2000'
+        minSdk 23
+        targetSdk 35
+        versionCode 2000
+        versionName '2.0.0'
+    }
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v4.0.4
-        with:
-          cmdline-tools-version: 12266719
-
-      - name: Install Android packages
-        run: |
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
-
-      - name: Setup Gradle
-        run: |
-          wget https://services.gradle.org/distributions/gradle-8.9-bin.zip
-          unzip -q gradle-8.9-bin.zip
-          echo "$GITHUB_WORKSPACE/gradle-8.9/bin" >> $GITHUB_PATH
-
-      - name: Extract project
-        run: |
-          mkdir source
-          unzip -q solana_agent_v2000_android_source.zip -d source
-          cd source/solana_agent_v2000_android
-          gradle assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Solana-Agent-V2000-APK
-          path: source/solana_agent_v2000_android/app/build/outputs/apk/debug/app-debug.apk
-          
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
