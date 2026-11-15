@@ -1,27 +1,70 @@
 
-plugins {
-    id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
-}
+name: Build Solana Agent V2000 APK
 
-android {
-    namespace 'com.solanaagent.v2000'
-    compileSdk 35
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
 
-    defaultConfig {
-        applicationId 'com.solanaagent.v2000'
-        minSdk 23
-        targetSdk 35
-        versionCode 2000
-        versionName '2.0.0'
-    }
+permissions:
+  contents: read
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-    kotlinOptions {
-        jvmTarget = '17'
-    }
-}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4.0.4
+        with:
+          cmdline-tools-version: 12266719
+
+      - name: Install Android packages
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Setup Gradle
+        run: |
+          wget https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          unzip -q gradle-8.9-bin.zip
+          echo "$GITHUB_WORKSPACE/gradle-8.9/bin" >> $GITHUB_PATH
+
+      - name: Extract and fix project
+        run: |
+          mkdir source
+          unzip -q solana_agent_v2000_android_source.zip -d source
+          cd source/solana_agent_v2000_android
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/build.gradle")
+          s = p.read_text()
+          s = s.rstrip()
+          s = s[:-1] + """
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = '17'
+              }
+          }
+          """
+          p.write_text(s)
+          PY
+          gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Solana-Agent-V2000-APK
+          path: source/solana_agent_v2000_android/app/build/outputs/apk/debug/app-debug.apk
+          
